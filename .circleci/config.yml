@@ -1,27 +1,34 @@
 version: 2.1
 
-jobs:
-  build:
+executors:
+  default:
     docker:
       - image: circleci/ruby:2.6.3-node
         environment:
           BUNDLE_RETRY: 3
           BUNDLE_PATH: vendor/bundle
           RAILS_ENV: test
+
+commands:
+  build:
+    parameters:
+      gemfile:
+        type: string
+        description: The Gemfile to use for this build.
     steps:
       - checkout
 
       - restore_cache:
           keys:
-            - rails-upgrades-bundle-v2-{{ checksum "Gemfile.lock" }}
+            - rails-upgrades-bundle-v2-{{ checksum "<<parameters.gemfile>>.lock" }}
             - rails-upgrades-bundle-v2-
 
       - run:
           name: Bundle Install
-          command: bundle check || bundle install
+          command: bundle check --gemfile=<<parameters.gemfile>> || bundle install --gemfile=<<parameters.gemfile>>
 
       - save_cache:
-          key: rails-upgrades-bundle-v2-{{ checksum "Gemfile.lock" }}
+          key: rails-upgrades-bundle-v2-{{ checksum "<<parameters.gemfile>>.lock" }}
           paths:
             - vendor/bundle
 
@@ -41,10 +48,14 @@ jobs:
 
       - run:
           name: Database setup
+          environment:
+            BUNDLE_GEMFILE: <<parameters.gemfile>>
           command: bundle exec rails db:create db:schema:load
 
       - run:
           name: Run rspec in parallel
+          environment:
+            BUNDLE_GEMFILE: <<parameters.gemfile>>
           command: |
             bundle exec rspec \
               --no-color \
@@ -55,3 +66,22 @@ jobs:
 
       - store_test_results:
           path: test_results
+
+jobs:
+  build-current:
+    executor: default
+    steps:
+      - build:
+          gemfile: Gemfile
+
+  build-next:
+    executor: default
+    steps:
+      - build:
+          gemfile: Gemfile.next
+
+workflows:
+  build:
+    jobs:
+      - build-current
+      - build-next
