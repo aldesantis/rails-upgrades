@@ -1,17 +1,13 @@
 version: 2.1
 
-executors:
-  default:
+jobs:
+  build:
     docker:
       - image: circleci/ruby:2.6.3-node
         environment:
           BUNDLE_RETRY: 3
           BUNDLE_PATH: vendor/bundle
           RAILS_ENV: test
-
-jobs:
-  build:
-    executor: default
     parameters:
       gemfile:
         type: string
