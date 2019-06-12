@@ -1,21 +1,20 @@
 version: 2.1
 
-executors:
-  default:
+jobs:
+  build:
     docker:
       - image: circleci/ruby:2.6.3-node
         environment:
           BUNDLE_RETRY: 3
           BUNDLE_PATH: vendor/bundle
           RAILS_ENV: test
+          BUNDLE_GEMFILE: <<parameters.gemfile>>
 
-jobs:
-  build:
-    executor: default
     parameters:
       gemfile:
         type: string
         description: The Gemfile to use for this build.
+
     steps:
       - checkout
 
@@ -25,7 +24,7 @@ jobs:
             - rails-upgrades-bundle-v2-
 
       - run:
-          name: Bundle Install
+          name: Install Bundler dependencies
           command: bundle check --gemfile=<<parameters.gemfile>> || bundle install --gemfile=<<parameters.gemfile>>
 
       - save_cache:
@@ -39,7 +38,7 @@ jobs:
             - rails-upgrades-yarn-
 
       - run:
-          name: Yarn Install
+          name: Install Yarn dependencies
           command: yarn install --cache-folder ~/.cache/yarn
 
       - save_cache:
@@ -48,15 +47,11 @@ jobs:
             - ~/.cache/yarn
 
       - run:
-          name: Database setup
-          environment:
-            BUNDLE_GEMFILE: <<parameters.gemfile>>
+          name: Set up the database
           command: bundle exec rails db:create db:schema:load
 
       - run:
-          name: Run rspec in parallel
-          environment:
-            BUNDLE_GEMFILE: <<parameters.gemfile>>
+          name: Run RSpec
           command: |
             bundle exec rspec \
               --no-color \
