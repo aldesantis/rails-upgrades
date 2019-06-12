@@ -69,6 +69,7 @@ workflows:
       - build:
           name: build-current
           gemfile: Gemfile
+
       - build:
           name: build-next
           gemfile: Gemfile.next
